@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .input-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .loading {
+            display: none;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Options Chain Data</h1>
+        
+        <div class="input-section">
+            <label for="ticker">Enter Stock Ticker: </label>
+            <input type="text" id="ticker" placeholder="e.g., AAPL">
+            <button onclick="fetchOptionsData()">Get Options Data</button>
+            <div id="loading" class="loading">Loading...</div>
+            <div id="error-message" class="error-message"></div>
+        </div>
+        
+        <table id="options-table">
+            <thead>
+                <tr>
+                    <th>Strike Price</th>
+                    <th>Option Type</th>
+                    <th>Bid</th>
+                    <th>Ask</th>
+                    <th>Volume</th>
+                    <th>Open Interest</th>
+                    <th>Premium Earned ($)</th>
+                    <th>Margin Required ($)</th>
+                    <th>Return on Margin (%)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchOptionsData() {
+            const ticker = document.getElementById('ticker').value.toUpperCase();
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error-message');
+            const tableBody = document.querySelector('#options-table tbody');
+            
+            if (!ticker) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Please enter a ticker symbol';
+                return;
+            }
+
+            try {
+                loadingDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+                tableBody.innerHTML = '';
+
+                const response = await fetch(`http://127.0.0.1:8000/get_options/${ticker}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to fetch options data');
+                }
+
+                if (!result.success || !result.data) {
+                    throw new Error('No data available');
+                }
+
+                result.data.forEach(option => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${formatNumber(option.strike)}</td>
+                        <td>${option.option_type}</td>
+                        <td>${formatNumber(option.bid)}</td>
+                        <td>${formatNumber(option.ask)}</td>
+                        <td>${formatNumber(option.volume)}</td>
+                        <td>${formatNumber(option.openInterest)}</td>
+                        <td>${formatNumber(option.premium_earned)}</td>
+                        <td>${formatNumber(option.margin_required)}</td>
+                        <td>${formatNumber(option.return_on_margin, 2)}%</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = error.message;
+                tableBody.innerHTML = '';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function formatNumber(num, decimals = 2) {
+            if (num === null || num === undefined) return 'N/A';
+            if (typeof num === 'number') {
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals
+                });
+            }
+            return num;
+        }
+    </script>
+</body>
+</html>

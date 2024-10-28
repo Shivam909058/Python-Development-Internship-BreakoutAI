@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 app = FastAPI()
 
-# Configure CORS properly
+# Configuring CORS for proper connections
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],  # Specify exact origins
